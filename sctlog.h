@@ -41,9 +41,11 @@ class Msg
 {
   public:
     Msg(const char *file, int line, Severity severity)
-        : file_(file), line_(line), severity_(severity)
+        : severity_(severity)
     {
+        std::string file_(file);
         size_t pos = file_.rfind('/');
+        std::string filename_only_;
         if (pos != std::string::npos)
             filename_only_ = file_.substr(pos + 1);
         else
@@ -89,9 +91,6 @@ class Msg
     std::stringstream &stream() { return stream_; }
 
   private:
-    std::string file_;
-    std::string filename_only_;
-    int line_;
     std::stringstream stream_;
     Severity severity_;
 };
