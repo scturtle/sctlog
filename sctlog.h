@@ -1,24 +1,23 @@
-#ifndef _SCTLOG_H_
-#define _SCTLOG_H_
+#pragma once
 
 #include <iostream>
 #include <limits.h>
 #include <mutex>
 #include <sstream>
-#include <string>
 #include <time.h>
 #include <unistd.h>
 #include <vector>
 
-const int FATAL = -3;
-const int ERROR = -2;
-const int WARNING = -1;
-const int INFO = 0;
+enum Severity
+{
+    FATAL = -3,
+    ERROR = -2,
+    WARNING = -1,
+    INFO = 0,
+};
 
 namespace sl
 {
-using Severity = int;
-
 class Sink
 {
   public:
@@ -27,7 +26,7 @@ class Sink
     virtual void until_sent() = 0;
 };
 
-extern int v;
+extern Severity v;
 extern std::mutex sinks_mutex;
 extern std::vector<Sink *> sinks;
 
@@ -40,16 +39,13 @@ inline void add_sink(Sink *sink)
 class Msg
 {
   public:
-    Msg(const char *file, int line, Severity severity)
+    Msg(char *file, int line, Severity severity)
         : severity_(severity)
     {
-        std::string file_(file);
-        size_t pos = file_.rfind('/');
-        std::string filename_only_;
-        if (pos != std::string::npos)
-            filename_only_ = file_.substr(pos + 1);
-        else
-            filename_only_ = file_;
+        char *filename_only = file;
+        char *pos = strrchr(file, '/');
+        if (pos != nullptr)
+            filename_only = pos + 1;
 
         time_t rawtime;
         time(&rawtime);
@@ -70,7 +66,7 @@ class Msg
             default: stream_ << "V(" << severity << ") ";
         }
         // clang-format on
-        stream_ << filename_only_ << ":" << line << " ";
+        stream_ << filename_only << ":" << line << " ";
     }
 
     ~Msg()
@@ -88,9 +84,6 @@ class Msg
             abort();
     }
 
-    std::stringstream &stream() { return stream_; }
-
-  private:
     std::stringstream stream_;
     Severity severity_;
 };
@@ -102,7 +95,7 @@ struct Voidify
 
 // clang-format off
 #define LOG_IF_RAW(n, cond) \
-    !(cond) ? void(0) : sl::Voidify() & sl::Msg((char *)__FILE__, __LINE__, n).stream()
+    !(cond) ? void(0) : sl::Voidify() & sl::Msg((char *)__FILE__, __LINE__, n).stream_
 #define LOG_IF(n, cond) LOG_IF_RAW(n, (n <= sl::v) && (cond))
 #define LOG_IF_FALSE(n, cond) LOG_IF(n, !(cond))
 #define LOG(n) LOG_IF(n, true)
@@ -156,5 +149,3 @@ class StderrSink : public Sink
 inline void log_to_stderr() { add_sink(new StderrSink()); }
 
 } // namespace sl
-
-#endif // _SCTLOG_H_

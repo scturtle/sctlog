@@ -2,7 +2,7 @@
 
 namespace sl
 {
-int v = 0;
+Severity v = INFO;
 std::mutex sinks_mutex;
 std::vector<Sink*> sinks;
 }
